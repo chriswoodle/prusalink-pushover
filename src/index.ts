@@ -20,6 +20,9 @@ const env = envsafe({
         desc: 'How often to poll the printer for status (in ms)',
         default: 1000 * 5,
     }),
+    INACTIVITY_TIMEOUT: num({
+        default: 1000 * 60,
+    })
 });
 
 const printer = `http://${env.PRUSA_IP}`
@@ -104,15 +107,15 @@ async function start() {
         await sleep(env.POLLING_INTERVAL);
 
         try {
-
             log(`Polling printer: ${env.PRUSA_IP}...`);
             const newState = (await api.get<PrinterState>('api/printer')).data;
             const newJob = (await api.get<Job>('api/job')).data;
             if (state.printerState === null) {
+                log('First poll, skipping');
                 state.printerState = newState;
                 continue;
             }
-            log(state);
+            log(JSON.stringify(state, null, '    '));
             if (state.printerState.state.flags.printing && !newState.state.flags.printing) {
                 log('Print finished!');
                 const title = `Print finished!`;
@@ -130,6 +133,10 @@ async function start() {
 
             state.job = newJob;
             state.printerState = newState;
+            if (!state.printerState.state.flags.printing) {
+                log('Printer not printing, reducing polling frequency')
+                await sleep(env.INACTIVITY_TIMEOUT);
+            }
         } catch (e) {
             log(getErrorMessage(e));
         }
