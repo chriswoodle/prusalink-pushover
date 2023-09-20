@@ -123,12 +123,12 @@ async function start() {
                     log('No job info');
                     const message = `Completed printing job.`;
                     await pushover.send(title, message);
-                    continue;
+                } else {
+                    const name = state.job.job.file.name;
+                    const elapsedTime = moment.duration(state.job.progress.printTime, 'seconds').humanize();;
+                    const message = `Completed printing ${name} after ${elapsedTime}.`;
+                    await pushover.send(title, message);
                 }
-                const name = state.job.job.file.name;
-                const elapsedTime = moment.duration(state.job.progress.printTime, 'seconds').humanize();;
-                const message = `Completed printing ${name} after ${elapsedTime}.`;
-                await pushover.send(title, message);
             }
 
             state.job = newJob;
